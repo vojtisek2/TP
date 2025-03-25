@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bazar Oblečení</title>
+
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+  />
+
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .navbar-brand {
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .offer-card img {
+      max-width: 100%;
+      height: auto;
+    }
+    .offer-card {
+      margin-bottom: 1rem;
+    }
+    .hidden {
+      display: none !important;
+    }
+
+    #btn-add-offer {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 999;
+    }
+    .required::after {
+      content: " *";
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#" id="nav-home">Thriftend</a>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-bs-toggle="collapse"
+        data-bs-target="#navbarNav"
+        aria-controls="navbarNav"
+        aria-expanded="false"
+        aria-label="Přepnout navigaci"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link" href="#" id="nav-account">Můj účet</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+
+  <div class="container mt-4" id="home-section">
+    <h2>Všechny nabídky</h2>
+
+    <div class="row mb-4">
+      <div class="col-md-3">
+        <input
+          type="text"
+          id="search-input"
+          class="form-control"
+          placeholder="Vyhledat podle názvu..."
+        />
+      </div>
+      <div class="col-md-2">
+        <select id="filter-condition" class="form-select">
+          <option value="">Všechny stavy</option>
+          <option value="nové">Nové</option>
+          <option value="použité">Použité</option>
+        </select>
+      </div>
+      <div class="col-md-2">
+        <input
+          type="text"
+          id="filter-size"
+          class="form-control"
+          placeholder="Velikost"
+        />
+      </div>
+      <div class="col-md-2">
+        <input
+          type="text"
+          id="filter-brand"
+          class="form-control"
+          placeholder="Značka"
+        />
+      </div>
+      <div class="col-md-3">
+        <button id="filter-btn" class="btn btn-primary">Filtrovat</button>
+        <button id="clear-filter-btn" class="btn btn-secondary">Reset</button>
+      </div>
+    </div>
+
+
+    <div class="row" id="all-offers-container"></div>
+
+
+    <button class="btn btn-primary" id="btn-add-offer">
+      Přidat nabídku
+    </button>
+  </div>
+  
+  <div class="container mt-4 hidden" id="account-section">
+    <div id="not-logged-in" class="">
+      <h3>Přihlášení</h3>
+      <form id="login-form" class="mb-4">
+        <div class="mb-3">
+          <label for="login-username" class="form-label required">Uživatelské jméno</label>
+          <input type="text" class="form-control" id="login-username" required />
+        </div>
+        <div class="mb-3">
+          <label for="login-password" class="form-label required">Heslo</label>
+          <input type="password" class="form-control" id="login-password" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Přihlásit</button>
+      </form>
+      <hr />
+      <h3>Registrace</h3>
+      <form id="register-form" class="mb-4">
+        <div class="mb-3">
+          <label for="register-username" class="form-label required">Uživatelské jméno</label>
+          <input type="text" class="form-control" id="register-username" required />
+        </div>
+        <div class="mb-3">
+          <label for="register-password" class="form-label required">Heslo</label>
+          <input type="password" class="form-control" id="register-password" required />
+        </div>
+        <button type="submit" class="btn btn-success">Zaregistrovat</button>
+      </form>
+    </div>
+
+    <div id="logged-in-section" class="hidden">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Vítejte, <span id="username-span"></span>!</h3>
+        <button class="btn btn-danger" id="logout-btn">Odhlásit</button>
+      </div>
+      <hr />
+      <h4>Moje nabídky</h4>
+      <div class="row" id="my-offers-container"></div>
+    </div>
+  </div>
+
+  <!-- MODÁLNÍ OKNO PRO PŘIDÁNÍ NABÍDKY -->
+  <div class="modal fade" id="addOfferModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="add-offer-form">
+        <div class="modal-header">
+          <h5 class="modal-title">Přidat nabídku</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+        </div>
+        <div class="modal-body">
+          <!-- NEBUDEME ručně nastavovat encType, 
+               protože odeslání proběhne přes FormData v JS -->
+          <div class="mb-3">
+            <label for="offer-title" class="form-label required">Název</label>
+            <input type="text" class="form-control" id="offer-title" required />
+          </div>
+          <div class="mb-3">
+            <label for="offer-price" class="form-label required">Cena</label>
+            <input type="number" step="0.01" class="form-control" id="offer-price" required />
+          </div>
+          <div class="mb-3">
+            <label for="offer-size" class="form-label">Velikost</label>
+            <input type="text" class="form-control" id="offer-size" />
+          </div>
+          <div class="mb-3">
+            <label for="offer-color" class="form-label">Barva</label>
+            <input type="text" class="form-control" id="offer-color" />
+          </div>
+          <div class="mb-3">
+            <label for="offer-condition" class="form-label">Stav</label>
+            <select id="offer-condition" class="form-select">
+              <option value="nové">Nové</option>
+              <option value="použité" selected>Použité</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="offer-brand" class="form-label">Značka</label>
+            <input type="text" class="form-control" id="offer-brand" />
+          </div>
+          <div class="mb-3">
+            <label for="offer-description" class="form-label">Popis</label>
+            <textarea class="form-control" id="offer-description" rows="3"></textarea>
+          </div>
+          <div class="mb-3">
+            <label for="offer-image" class="form-label">Fotka</label>
+            <input type="file" class="form-control" id="offer-image" accept="image/*" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zrušit</button>
+          <button type="submit" class="btn btn-primary">Přidat</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // GLOBÁLNÍ PROMĚNNÉ
+    let currentUserId = localStorage.getItem('userId') || null;
+    let currentUsername = localStorage.getItem('username') || null;
+    let allOffers = [];
+    let myOffers = [];
+
+    // DOM ELEMENTY
+    const homeSection = document.getElementById('home-section');
+    const accountSection = document.getElementById('account-section');
+    const notLoggedInDiv = document.getElementById('not-logged-in');
+    const loggedInSection = document.getElementById('logged-in-section');
+
+    const navHome = document.getElementById('nav-home');
+    const navAccount = document.getElementById('nav-account');
+
+    const btnAddOffer = document.getElementById('btn-add-offer');
+    const addOfferModalEl = document.getElementById('addOfferModal');
+    const addOfferForm = document.getElementById('add-offer-form');
+
+    const searchInput = document.getElementById('search-input');
+    const filterCondition = document.getElementById('filter-condition');
+    const filterSize = document.getElementById('filter-size');
+    const filterBrand = document.getElementById('filter-brand');
+    const filterBtn = document.getElementById('filter-btn');
+    const clearFilterBtn = document.getElementById('clear-filter-btn');
+
+    const allOffersContainer = document.getElementById('all-offers-container');
+    const myOffersContainer = document.getElementById('my-offers-container');
+
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const usernameSpan = document.getElementById('username-span');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    // -------------------------------------------
+    // FUNKCE ZOBRAZENÍ SEKCI
+    // -------------------------------------------
+    function showHomeSection() {
+      homeSection.classList.remove('hidden');
+      accountSection.classList.add('hidden');
+    }
+
+    function showAccountSection() {
+      accountSection.classList.remove('hidden');
+      homeSection.classList.add('hidden');
+      updateAccountSection();
+    }
+
+    function updateAccountSection() {
+      if (!currentUserId) {
+        // Nepřihlášen
+        notLoggedInDiv.classList.remove('hidden');
+        loggedInSection.classList.add('hidden');
+      } else {
+        // Přihlášen
+        notLoggedInDiv.classList.add('hidden');
+        loggedInSection.classList.remove('hidden');
+        usernameSpan.textContent = currentUsername || '';
+        fetchMyOffers();
+      }
+    }
+
+    // -------------------------------------------
+    // NAVIGACE
+    // -------------------------------------------
+    navHome.addEventListener('click', (e) => {
+      e.preventDefault();
+      showHomeSection();
+      fetchAllOffers(); // Znovu načteme
+    });
+
+    navAccount.addEventListener('click', (e) => {
+      e.preventDefault();
+      showAccountSection();
+    });
+
+    // -------------------------------------------
+    // LOGOUT
+    // -------------------------------------------
+    logoutBtn.addEventListener('click', () => {
+      currentUserId = null;
+      currentUsername = null;
+      localStorage.removeItem('userId');
+      localStorage.removeItem('username');
+
+      updateAccountSection(); // Vrátíme do stavu nepřihlášen
+    });
+
+    // -------------------------------------------
+    // TLAČÍTKO "Přidat nabídku" (Domů)
+    // -------------------------------------------
+    btnAddOffer.addEventListener('click', () => {
+      if (!currentUserId) {
+        alert('Pro přidání nabídky se musíte nejdřív přihlásit.');
+      } else {
+        const modal = new bootstrap.Modal(addOfferModalEl);
+        modal.show();
+      }
+    });
+
+    // -------------------------------------------
+    // ODESLÁNÍ FORMULÁŘE "Přidat nabídku" (MODÁL)
+    // -------------------------------------------
+    addOfferForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUserId) {
+        alert('Nejste přihlášen.');
+        return;
+      }
+      // Sestavíme FormData
+      const formData = new FormData();
+      formData.append('title', document.getElementById('offer-title').value);
+      formData.append('price', document.getElementById('offer-price').value);
+      formData.append('size', document.getElementById('offer-size').value);
+      formData.append('color', document.getElementById('offer-color').value);
+      formData.append('item_condition', document.getElementById('offer-condition').value);
+      formData.append('brand', document.getElementById('offer-brand').value);
+      formData.append('description', document.getElementById('offer-description').value);
+
+      // Fotka
+      const fileInput = document.getElementById('offer-image');
+      if (fileInput.files.length > 0) {
+        formData.append('image', fileInput.files[0]);
+      }
+
+      try {
+        const res = await fetch('http://localhost:3000/api/offers', {
+          method: 'POST',
+          headers: {
+            'x-user-id': currentUserId
+            // Nezadáváme Content-Type, FormData si to nastaví samo
+          },
+          body: formData
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || 'Chyba při přidávání nabídky.');
+        } else {
+          alert(data.message || 'Nabídka přidána.');
+          // Schováme modal
+          const modalInstance = bootstrap.Modal.getInstance(addOfferModalEl);
+          modalInstance.hide();
+          addOfferForm.reset();
+          // Znovu načteme nabídky
+          fetchAllOffers();
+        }
+      } catch (error) {
+        console.error('Chyba při přidávání nabídky:', error);
+      }
+    });
+
+    // -------------------------------------------
+    // FETCH ALL OFFERS
+    // -------------------------------------------
+    async function fetchAllOffers() {
+      try {
+        const res = await fetch('http://localhost:3000/api/offers');
+        allOffers = await res.json();
+        renderAllOffers(allOffers);
+      } catch (error) {
+        console.error('Chyba fetchAllOffers:', error);
+      }
+    }
+
+    function renderAllOffers(offers) {
+      allOffersContainer.innerHTML = '';
+      offers.forEach((offer) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-3';
+
+        const card = document.createElement('div');
+        card.className = 'card offer-card';
+
+        if (offer.image) {
+          const img = document.createElement('img');
+          img.className = 'card-img-top';
+          // Je-li image = "/uploads/...", zobrazíme přímo
+          img.src = offer.image;
+          img.alt = offer.title;
+          card.appendChild(img);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.textContent = offer.title;
+        body.appendChild(title);
+
+        const info = document.createElement('p');
+        info.innerHTML = `
+          <strong>Velikost:</strong> ${offer.size || 'neuvedeno'}<br />
+          <strong>Barva:</strong> ${offer.color || 'neuvedeno'}<br />
+          <strong>Stav:</strong> ${offer.item_condition}<br />
+          <strong>Značka:</strong> ${offer.brand || 'neuvedeno'}<br />
+          <strong>Cena:</strong> ${offer.price} Kč<br />
+          <em>Vytvořil: ${offer.username}</em>
+        `;
+        body.appendChild(info);
+
+        if (offer.description) {
+          const descP = document.createElement('p');
+          descP.textContent = offer.description;
+          body.appendChild(descP);
+        }
+
+        card.appendChild(body);
+        col.appendChild(card);
+        allOffersContainer.appendChild(col);
+      });
+    }
+
+    // -------------------------------------------
+    // FETCH MY OFFERS
+    // -------------------------------------------
+    async function fetchMyOffers() {
+      try {
+        const res = await fetch('http://localhost:3000/api/my-offers', {
+          headers: { 'x-user-id': currentUserId }
+        });
+        myOffers = await res.json();
+        renderMyOffers(myOffers);
+      } catch (error) {
+        console.error('Chyba fetchMyOffers:', error);
+      }
+    }
+
+    function renderMyOffers(offers) {
+      myOffersContainer.innerHTML = '';
+      offers.forEach((offer) => {
+        const col = document.createElement('div');
+        col.className = 'col-md-3';
+
+        const card = document.createElement('div');
+        card.className = 'card offer-card';
+
+        if (offer.image) {
+          const img = document.createElement('img');
+          img.className = 'card-img-top';
+          img.src = offer.image;
+          img.alt = offer.title;
+          card.appendChild(img);
+        }
+
+        const body = document.createElement('div');
+        body.className = 'card-body';
+
+        const title = document.createElement('h5');
+        title.textContent = offer.title;
+        body.appendChild(title);
+
+        const info = document.createElement('p');
+        info.innerHTML = `
+          <strong>Velikost:</strong> ${offer.size || 'neuvedeno'}<br />
+          <strong>Barva:</strong> ${offer.color || 'neuvedeno'}<br />
+          <strong>Stav:</strong> ${offer.item_condition}<br />
+          <strong>Značka:</strong> ${offer.brand || 'neuvedeno'}<br />
+          <strong>Cena:</strong> ${offer.price} Kč
+        `;
+        body.appendChild(info);
+
+        if (offer.description) {
+          const descP = document.createElement('p');
+          descP.textContent = offer.description;
+          body.appendChild(descP);
+        }
+
+        // Tlačítka upravit / smazat
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn btn-sm btn-warning me-2';
+        editBtn.textContent = 'Upravit';
+        editBtn.addEventListener('click', () => {
+          // Tady byste mohli otevřít modál pro editaci
+          // a poslat tam data (podobně jako v addOffer).
+          alert('Tady bude logika pro úpravu nabídky...');
+        });
+        body.appendChild(editBtn);
+
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'btn btn-sm btn-danger';
+        deleteBtn.textContent = 'Smazat';
+        deleteBtn.addEventListener('click', () => {
+          deleteMyOffer(offer.id);
+        });
+        body.appendChild(deleteBtn);
+
+        card.appendChild(body);
+        col.appendChild(card);
+        myOffersContainer.appendChild(col);
+      });
+    }
+
+    // SMAZÁNÍ MOJÍ NABÍDKY
+    async function deleteMyOffer(id) {
+      if (!confirm('Opravdu chcete smazat tuto nabídku?')) return;
+      try {
+        const res = await fetch(`http://localhost:3000/api/offers/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'x-user-id': currentUserId
+          }
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || 'Chyba při mazání nabídky.');
+        } else {
+          alert('Nabídka smazána.');
+          fetchMyOffers();
+          fetchAllOffers(); // ať se aktualizuje i Home
+        }
+      } catch (error) {
+        console.error('Chyba při mazání nabídky:', error);
+      }
+    }
+
+    // -------------------------------------------
+    // PŘIHLÁŠENÍ
+    // -------------------------------------------
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value;
+      const password = document.getElementById('login-password').value;
+
+      try {
+        const res = await fetch('http://localhost:3000/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || 'Chyba při přihlášení.');
+        } else {
+          alert(data.message || 'Přihlášení proběhlo úspěšně.');
+          currentUserId = data.userId;
+          currentUsername = data.username;
+          localStorage.setItem('userId', currentUserId);
+          localStorage.setItem('username', currentUsername);
+          updateAccountSection();
+        }
+      } catch (error) {
+        console.error('Chyba při přihlášení:', error);
+      }
+    });
+
+    // -------------------------------------------
+    // REGISTRACE
+    // -------------------------------------------
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('register-username').value;
+      const password = document.getElementById('register-password').value;
+
+      try {
+        const res = await fetch('http://localhost:3000/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.message || 'Chyba při registraci.');
+        } else {
+          alert(data.message || 'Registrace proběhla úspěšně.');
+          // Server rovnou vrátil userId a username => automatické přihlášení
+          currentUserId = data.userId;
+          currentUsername = data.username;
+          localStorage.setItem('userId', currentUserId);
+          localStorage.setItem('username', currentUsername);
+          updateAccountSection();
+        }
+      } catch (error) {
+        console.error('Chyba při registraci:', error);
+      }
+    });
+
+    // -------------------------------------------
+    // FILTROVÁNÍ (VŠECH) NABÍDEK
+    // -------------------------------------------
+    filterBtn.addEventListener('click', filterAllOffers);
+    clearFilterBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      filterCondition.value = '';
+      filterSize.value = '';
+      filterBrand.value = '';
+      renderAllOffers(allOffers);
+    });
+
+    function filterAllOffers() {
+      const text = searchInput.value.toLowerCase().trim();
+      const cond = filterCondition.value;
+      const size = filterSize.value.toLowerCase().trim();
+      const brand = filterBrand.value.toLowerCase().trim();
+
+      const filtered = allOffers.filter((offer) => {
+        if (text && !offer.title.toLowerCase().includes(text)) return false;
+        if (cond && offer.item_condition !== cond) return false;
+        if (size && (!offer.size || !offer.size.toLowerCase().includes(size))) return false;
+        if (brand && (!offer.brand || !offer.brand.toLowerCase().includes(brand))) return false;
+        return true;
+      });
+
+      renderAllOffers(filtered);
+    }
+
+    // -------------------------------------------
+    // INIT
+    // -------------------------------------------
+    (function init() {
+      // Načteme hned všechny nabídky
+      fetchAllOffers();
+
+
+      if (currentUserId) {
+      }
+    })();
+  </script>
+</body>
+</html>
