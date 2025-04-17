@@ -1,0 +1,600 @@
+/* Global styles for vintage secondhand theme */
+html, body {
+    height: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #181a1b;
+    color: #f5f5f5;
+}
+
+body {
+    background: #fff;
+    color: #181a1b;
+    position: relative;
+    font-family: 'Georgia', serif; /* Vintage-inspired font */
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+#home-section {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#all-offers-container {
+    flex: 1 0 auto;
+}
+  
+/* ========= ANIMACE NA STRÁNCE ========= */
+  
+/* Celkové načítací animace stránky */
+.fade-page {
+    animation: fadeIn 1s ease forwards;
+}
+  
+/* Název sekcí a prvky se zobrazí se slide-up efektem */
+.animate-fadeInUp {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.8s forwards;
+}
+  
+/* Animace pro navbar (např. slide down při načtení) */
+.animate-slideDown {
+    animation: slideDown 0.8s forwards;
+}
+  
+/* Klíčové snímky pro animace */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+  
+@keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+}
+  
+@keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+}
+
+/* Modern animations */
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Apply animations to elements */
+.fade-in {
+    animation: fadeIn 1s ease-in-out;
+}
+
+.slide-up {
+    animation: slideUp 0.8s ease-in-out;
+}
+  
+/* ========= NAVBAR ========= */
+.navbar-dark {
+    background-color: #23272a;
+    border-bottom: 2px solid #111;
+}
+
+.navbar-dark .navbar-brand {
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: #f5f5f5;
+    font-size: 1rem;
+    margin: 0 10px;
+    transition: color 0.3s ease;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+    color: #ffffff;
+}
+  
+/* ========= NABÍDKY (karty) ========= */
+.offer-card img {
+    max-width: 100%;
+    height: auto;
+}
+  
+.offer-card {
+    background-color: #23272a;
+    color: #f5f5f5;
+    border: 1px solid #333;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+  
+.offer-card.visible {
+    animation: fadeInUp 0.8s forwards;
+}
+  
+.offer-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* Hover effects */
+.card:hover {
+    transform: scale(1.05);
+    transition: transform 0.3s ease;
+}
+  
+/* ========= SKRYTÍ ========= */
+.hidden {
+    display: none !important;
+}
+  
+/* ========= FORMULARY ========= */
+.required::after {
+    content: " *";
+    color: red;
+}
+  
+.card-body p {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+  
+.card-body h5 {
+    font-size: 1.25rem;
+    font-weight: bold;
+}
+  
+.card-body .btn {
+    margin-top: 10px;
+}
+  
+/* ========= FILTRACE ========= */
+/* Redesigned filter section for vintage secondhand theme */
+.search-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+    background-color: #23272a;
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 1s ease-in-out forwards; /* Added 'forwards' to keep the final state */
+}
+
+.search-bar input,
+.search-bar select {
+    padding: 12px 16px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background-color: #fff !important;
+    color: #181a1b !important;
+    font-size: 1rem;
+    font-family: 'Georgia', serif; /* Vintage-inspired font */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-bar input:focus,
+.search-bar select:focus {
+    border-color: #fff;
+    box-shadow: 0 0 8px rgba(166, 124, 82, 0.5); /* Subtle focus shadow */
+}
+
+.search-bar button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: 'Georgia', serif;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.search-bar .btn-primary {
+    background-color: #111;
+    color: #fff;
+}
+
+.search-bar .btn-primary:hover {
+    background-color: #333;
+    transform: scale(1.05); /* Slight scaling effect */
+}
+
+.search-bar .btn-secondary {
+    background-color: #333;
+    color: #fff;
+}
+
+.search-bar .btn-secondary:hover {
+    background-color: #555;
+    transform: scale(1.05); /* Slight scaling effect */
+}
+
+/* Add subtle animations */
+.search-bar {
+    animation: fadeIn 1s ease-in-out forwards; /* Added 'forwards' to keep the final state */
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+  
+/* Buttons */
+.btn-primary, .btn-success, .btn-danger {
+    background-color: #23272a;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.btn-primary:hover, .btn-success:hover, .btn-danger:hover {
+    background-color: #111;
+    color: #fff;
+    transform: scale(1.05);
+}
+
+.btn-secondary {
+    background-color: #333;
+    border: none;
+    color: #fff; /* White text */
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-secondary:hover {
+    background-color: #555;
+    transform: scale(1.05);
+}
+
+/* Hover effects */
+.button:hover {
+    background-color: #555555; /* Slightly darker grey */
+    color: #ffffff; /* White text */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+  
+/* ========= TYPOGRAPHY ========= */
+h1, h2, h3, h4, h5, h6 {
+    color: #f5f5f5; /* White */
+    font-family: 'Georgia', serif;
+    margin-bottom: 1rem;
+}
+
+p {
+    color: #f5f5f5; /* White */
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* ========= INPUTS ========= */
+input, select, textarea {
+    background-color: #fff !important; /* White background */
+    color: #181a1b !important; /* Dark text */
+    border: 2px solid #333; /* Dark border */
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #fff; /* White on focus */
+    box-shadow: 0 0 8px rgba(166, 124, 82, 0.5);
+}
+
+/* ========= PLOVOUCÍ TLAČÍTKO ========= */
+#btn-add-offer {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1001;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    background-color: #23272a; /* Dark background */
+    color: #fff; /* White icon */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Subtle shadow */
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+  
+#btn-add-offer:hover {
+    background-color: #111; /* Darker background on hover */
+    transform: scale(1.1); /* Slight scaling */
+}
+  
+#btn-add-offer i {
+    transition: transform 0.3s ease;
+}
+  
+#btn-add-offer:hover i {
+    transform: rotate(90deg);
+}
+
+/* ========= FOOTER ========= */
+footer {
+    background-color: #23272a; /* Dark background */
+    color: #f5f5f5; /* White text */
+    text-align: center;
+    padding: 1rem 0;
+    width: 100%;
+    margin-top: auto;
+    position: static;
+    left: unset;
+    bottom: unset;
+    z-index: 1000;
+    flex-shrink: 0;
+}
+
+footer a {
+    color: #fff; /* White links */
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: #f5f5f5; /* Slightly lighter white on hover */
+}
+
+/* ========= DOWN DIV ========= */
+#down-div {
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 80px;
+    z-index: 1;
+    pointer-events: none;
+    background: #181a1b; /* Dark background */
+}
+
+/* ========= MODALS ========= */
+.modal-content {
+    background-color: #23272a;
+    color: #f5f5f5;
+    border: 1px solid #333;
+}
+
+.modal-header, .modal-footer {
+    border-color: #333;
+}
+
+.form-label, .form-control, .form-select, .modal-title {
+    color: #181a1b !important;
+}
+
+hr {
+    border-color: #333;
+}
+
+/* --- Improved Add/Edit Offer Modal Form --- */
+#addOfferModal .modal-dialog {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    max-width: 370px;
+    min-width: 280px;
+    margin: auto;
+}
+
+#addOfferModal .modal-content {
+    background: #fff;
+    color: #181a1b;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+    border: none;
+    padding: 0.7rem 0.7rem 0.5rem 0.7rem;
+    max-width: 370px;
+    width: 100%;
+    min-width: 280px;
+    animation: modalPopIn 0.4s cubic-bezier(.68,-0.55,.27,1.55);
+}
+
+#addOfferModal .modal-header {
+    background: none;
+    color: #181a1b;
+    border: none;
+    padding-bottom: 0.3rem;
+    padding-top: 0.3rem;
+}
+
+#addOfferModal .modal-title {
+    color: #181a1b !important;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+}
+
+#addOfferModal .modal-body {
+    background: none;
+    border-radius: 0 0 12px 12px;
+    padding: 0.2rem 0 0 0;
+}
+
+#addOfferModal .form-label {
+    color: #181a1b !important;
+    font-weight: 500;
+    margin-bottom: 0.1rem;
+    font-size: 0.92rem;
+}
+
+#addOfferModal input.form-control,
+#addOfferModal select.form-select,
+#addOfferModal textarea.form-control {
+    background: #fff !important;
+    color: #181a1b !important;
+    border: 1.5px solid #bbb;
+    border-radius: 7px;
+    margin-bottom: 0.3rem;
+    padding: 4px 8px;
+    font-size: 0.92rem;
+    box-shadow: none;
+    transition: border-color 0.2s;
+}
+
+#addOfferModal input.form-control:focus,
+#addOfferModal select.form-select:focus,
+#addOfferModal textarea.form-control:focus {
+    border-color: #23272a;
+    background: #f5f5f5 !important;
+}
+
+#addOfferModal .modal-footer {
+    background: none;
+    border: none;
+    border-radius: 0 0 12px 12px;
+    justify-content: flex-end;
+    padding-top: 0.3rem;
+    padding-bottom: 0.3rem;
+}
+
+#addOfferModal .btn-primary, #addOfferModal .btn-secondary {
+    border-radius: 7px;
+    font-weight: 500;
+    padding: 6px 14px;
+    font-size: 0.97rem;
+    box-shadow: none;
+    background: #23272a;
+    color: #fff;
+    border: none;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
+}
+
+#addOfferModal .btn-primary:hover, #addOfferModal .btn-secondary:hover {
+    background: #111;
+    color: #fff;
+    transform: translateY(-1px) scale(1.03);
+}
+
+@keyframes modalPopIn {
+    0% { transform: scale(0.92) translateY(30px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* --- Modern styles for login/register toggle buttons --- */
+.account-toggle .btn {
+    min-width: 120px;
+    font-weight: 500;
+    border-radius: 8px;
+    box-shadow: none;
+    transition: background 0.2s, color 0.2s;
+}
+.account-toggle .btn.active,
+.account-toggle .btn.btn-primary {
+    background: #23272a;
+    color: #fff;
+    border: none;
+}
+.account-toggle .btn.btn-secondary {
+    background: #e4e4e4;
+    color: #23272a;
+    border: none;
+}
+.account-toggle .btn:not(.active):hover {
+    background: #bbb;
+    color: #23272a;
+}
+
+/* --- Modern notification (toast) styles --- */
+#notification-container {
+    position: fixed;
+    top: 48%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    pointer-events: none;
+    width: 100%;
+    max-width: 100vw;
+}
+
+.notification {
+    min-width: 260px;
+    max-width: 380px;
+    background: #23272a;
+    color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 18px 32px;
+    font-size: 1.08rem;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px) scale(0.98);
+    animation: notificationIn 0.4s forwards, notificationOut 0.4s 2.6s forwards;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    justify-content: center;
+    text-align: center;
+}
+
+.notification.success { background: #2ecc40; color: #fff; }
+.notification.error { background: #e74c3c; color: #fff; }
+.notification.info { background: #23272a; color: #fff; }
+
+@keyframes notificationIn {
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+@keyframes notificationOut {
+    to {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.98);
+    }
+}
