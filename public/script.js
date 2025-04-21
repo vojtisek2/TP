@@ -6,14 +6,35 @@ let myOffers = [];
 let isEditMode = false;
 let editingOfferId = null;
 
+// Připojení k socket.io
+let socket;
+if (typeof io !== 'undefined') {
+  socket = io('http://localhost:3000');
+}
+
+// Po přihlášení uživatele pošli jeho userId na socket
+function socketLogin() {
+  if (socket && currentUserId) {
+    socket.emit('login', { userId: currentUserId });
+  }
+}
+
+// Po přihlášení nebo registraci
+function afterLogin() {
+  updateAccountSection();
+  socketLogin();
+}
+
 // DOM elementy
 const homeSection = document.getElementById('home-section');
 const accountSection = document.getElementById('account-section');
+const chatSection = document.getElementById('chat-section');
 const notLoggedInDiv = document.getElementById('not-logged-in');
 const loggedInSection = document.getElementById('logged-in-section');
 
 const navHome = document.getElementById('nav-home');
 const navAccount = document.getElementById('nav-account');
+const navChat = document.getElementById('nav-chat');
 
 const btnAddOffer = document.getElementById('btn-add-offer');
 const addOfferModalEl = document.getElementById('addOfferModal');
@@ -91,12 +112,21 @@ function showConfirm(message) {
 function showHomeSection() {
   homeSection.classList.remove('hidden');
   accountSection.classList.add('hidden');
+  chatSection.classList.add('hidden');
 }
 
 function showAccountSection() {
   accountSection.classList.remove('hidden');
   homeSection.classList.add('hidden');
+  chatSection.classList.add('hidden');
   updateAccountSection();
+}
+
+function showChatSection() {
+  homeSection.classList.add('hidden');
+  accountSection.classList.add('hidden');
+  chatSection.classList.remove('hidden');
+  fetchUserChats();
 }
 
 function updateAccountSection() {
@@ -123,6 +153,13 @@ navAccount.addEventListener('click', (e) => {
   showAccountSection();
 });
 
+if (navChat && chatSection) {
+  navChat.addEventListener('click', (e) => {
+    e.preventDefault();
+    showChatSection();
+  });
+}
+
 // Odhlášení
 logoutBtn.addEventListener('click', () => {
   currentUserId = null;
@@ -134,6 +171,8 @@ logoutBtn.addEventListener('click', () => {
   document.getElementById('login-password').value = '';
   document.getElementById('register-username').value = '';
   document.getElementById('register-password').value = '';
+  document.getElementById('register-telephone').value = '';
+  document.getElementById('register-email').value = '';
   updateAccountSection();
   showNotification('Byli jste odhlášeni.', 'success');
 });
@@ -237,11 +276,27 @@ function renderAllOffers(offers) {
     card.className = 'card offer-card';
     card.style.cursor = 'pointer';
     card.addEventListener('click', () => {
-      window.location.href = `offer.html?id=${offer.id}`;
+      document.getElementById('offer-detail-title').textContent = offer.title;
+      document.getElementById('offer-detail-info').innerHTML = `
+        <strong>Velikost:</strong> ${offer.size || 'neuvedeno'}<br />
+        <strong>Barva:</strong> ${offer.color || 'neuvedeno'}<br />
+        <strong>Stav:</strong> ${offer.item_condition}<br />
+        <strong>Značka:</strong> ${offer.brand || 'neuvedeno'}<br />
+        <strong>Cena:</strong> ${offer.price} Kč<br />
+      `;
+      document.getElementById('offer-detail-description').textContent = offer.description || '';
+      document.getElementById('offer-detail-author').textContent = `Vytvořil: ${offer.username}`;
+      const img = document.getElementById('offer-detail-image');
+      if (offer.image) {
+        img.src = offer.image;
+        img.alt = offer.title;
+        img.style.display = '';
+      } else {
+        img.style.display = 'none';
+      }
+      const modal = new bootstrap.Modal(document.getElementById('offerDetailModal'));
+      modal.show();
     });
-    
-    // Pro animaci při scrollování nastavíme zpoždění
-    card.style.animationDelay = `${index * 100}ms`;
 
     if (offer.image) {
       const img = document.createElement('img');
@@ -249,6 +304,16 @@ function renderAllOffers(offers) {
       img.src = offer.image;
       img.alt = offer.title;
       card.appendChild(img);
+    } else {
+      const noImgDiv = document.createElement('div');
+      noImgDiv.className = 'card-img-top d-flex align-items-center justify-content-center';
+      noImgDiv.style.height = '180px';
+      noImgDiv.style.background = '#e4e4e4';
+      noImgDiv.style.color = '#888';
+      noImgDiv.style.fontWeight = 'bold';
+      noImgDiv.style.fontSize = '1.1rem';
+      noImgDiv.textContent = 'No image';
+      card.appendChild(noImgDiv);
     }
 
     const body = document.createElement('div');
@@ -259,20 +324,19 @@ function renderAllOffers(offers) {
     body.appendChild(title);
 
     const info = document.createElement('p');
-    info.innerHTML = `
-      <strong>Velikost:</strong> ${offer.size || 'neuvedeno'}<br />
-      <strong>Barva:</strong> ${offer.color || 'neuvedeno'}<br />
-      <strong>Stav:</strong> ${offer.item_condition}<br />
-      <strong>Značka:</strong> ${offer.brand || 'neuvedeno'}<br />
-      <strong>Cena:</strong> ${offer.price} Kč<br />
-      <em>Vytvořil: ${offer.username}</em>
-    `;
+    info.innerHTML = `<span class="offer-price">${offer.price} Kč</span><br><span class="offer-size">Velikost: ${offer.size || 'neuvedeno'}</span>`;
     body.appendChild(info);
 
-    if (offer.description) {
-      const descP = document.createElement('p');
-      descP.textContent = offer.description;
-      body.appendChild(descP);
+    // Přidám tlačítko Kontaktuj mě (pokud není moje nabídka)
+    if (currentUserId && offer.user_id != currentUserId) {
+      const chatBtn = document.createElement('button');
+      chatBtn.className = 'btn btn-sm btn-success mt-2';
+      chatBtn.textContent = 'Kontaktuj mě';
+      chatBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openChatWithUser(offer.user_id, offer.username);
+      });
+      body.appendChild(chatBtn);
     }
 
     card.appendChild(body);
@@ -310,6 +374,16 @@ function renderMyOffers(offers) {
       img.src = offer.image;
       img.alt = offer.title;
       card.appendChild(img);
+    } else {
+      const noImgDiv = document.createElement('div');
+      noImgDiv.className = 'card-img-top d-flex align-items-center justify-content-center';
+      noImgDiv.style.height = '180px';
+      noImgDiv.style.background = '#e4e4e4';
+      noImgDiv.style.color = '#888';
+      noImgDiv.style.fontWeight = 'bold';
+      noImgDiv.style.fontSize = '1.1rem';
+      noImgDiv.textContent = 'No image';
+      card.appendChild(noImgDiv);
     }
 
     const body = document.createElement('div');
@@ -320,20 +394,8 @@ function renderMyOffers(offers) {
     body.appendChild(title);
 
     const info = document.createElement('p');
-    info.innerHTML = `
-      <strong>Velikost:</strong> ${offer.size || 'neuvedeno'}<br />
-      <strong>Barva:</strong> ${offer.color || 'neuvedeno'}<br />
-      <strong>Stav:</strong> ${offer.item_condition}<br />
-      <strong>Značka:</strong> ${offer.brand || 'neuvedeno'}<br />
-      <strong>Cena:</strong> ${offer.price} Kč
-    `;
+    info.innerHTML = `<span class="offer-price">${offer.price} Kč</span><br><span class="offer-size">Velikost: ${offer.size || 'neuvedeno'}</span>`;
     body.appendChild(info);
-
-    if (offer.description) {
-      const descP = document.createElement('p');
-      descP.textContent = offer.description;
-      body.appendChild(descP);
-    }
 
     const editBtn = document.createElement('button');
     editBtn.className = 'btn btn-sm btn-warning me-2';
@@ -341,7 +403,6 @@ function renderMyOffers(offers) {
     editBtn.addEventListener('click', () => {
       isEditMode = true;
       editingOfferId = offer.id;
-      // Prefill modal
       document.getElementById('offer-title').value = offer.title || '';
       document.getElementById('offer-price').value = offer.price || '';
       document.getElementById('offer-size').value = offer.size || '';
@@ -350,10 +411,8 @@ function renderMyOffers(offers) {
       document.getElementById('offer-brand').value = offer.brand || '';
       document.getElementById('offer-description').value = offer.description || '';
       document.getElementById('offer-image').value = '';
-      // Change modal title and button
       document.querySelector('#addOfferModal .modal-title').textContent = 'Upravit nabídku';
       document.querySelector('#add-offer-form button[type="submit"]').textContent = 'Uložit změny';
-      // Show modal
       const modal = new bootstrap.Modal(addOfferModalEl);
       modal.show();
     });
@@ -417,7 +476,7 @@ loginForm.addEventListener('submit', async (e) => {
       currentUsername = data.username;
       localStorage.setItem('userId', currentUserId);
       localStorage.setItem('username', currentUsername);
-      updateAccountSection();
+      afterLogin();
     }
   } catch (error) {
     showNotification('Chyba při přihlášení.', 'error');
@@ -429,12 +488,14 @@ registerForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const username = document.getElementById('register-username').value;
   const password = document.getElementById('register-password').value;
+  const telephone = document.getElementById('register-telephone').value;
+  const email = document.getElementById('register-email').value;
 
   try {
     const res = await fetch('http://localhost:3000/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, telephone, email })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -445,7 +506,7 @@ registerForm.addEventListener('submit', async (e) => {
       currentUsername = data.username;
       localStorage.setItem('userId', currentUserId);
       localStorage.setItem('username', currentUsername);
-      updateAccountSection();
+      afterLogin();
     }
   } catch (error) {
     showNotification('Chyba při registraci.', 'error');
@@ -498,6 +559,189 @@ function animateOnScroll() {
   );
   elements.forEach(el => {
     observer.observe(el);
+  });
+}
+
+// Zobrazení kontaktu
+async function showContactModal(userId) {
+  try {
+    const res = await fetch(`http://localhost:3000/api/user/${userId}`);
+    const data = await res.json();
+    document.getElementById('contact-username').textContent = data.username || '';
+    document.getElementById('contact-telephone').textContent = data.telephone || 'neuvedeno';
+    document.getElementById('contact-email').textContent = data.email || 'neuvedeno';
+    const modal = new bootstrap.Modal(document.getElementById('contactModal'));
+    modal.show();
+  } catch (error) {
+    showNotification('Chyba při načítání kontaktu.', 'error');
+  }
+}
+
+// Přidám funkce pro chat
+// Otevře chat modal s uživatelem
+function openChatWithUser(userId, username) {
+  if (!currentUserId) {
+    showNotification('Pro chatování se musíte přihlásit.', 'error');
+    return;
+  }
+  showChatSection();
+  setActiveChatThread(userId, username);
+}
+
+// Zvýraznění aktivního chatu
+let activeChatUserId = null;
+function setActiveChatThread(userId, username) {
+  activeChatUserId = userId;
+  // Odstranit .active ze všech
+  document.querySelectorAll('.chat-thread-list-item').forEach(el => {
+    el.classList.remove('active');
+    if (el.dataset.userid == userId) el.classList.add('active');
+  });
+  openChatThread(userId, username);
+}
+
+// Načtení všech chatů uživatele
+async function fetchUserChats() {
+  if (!currentUserId) return;
+  const chatList = document.getElementById('chat-list');
+  chatList.innerHTML = '<div>Načítám...</div>';
+  try {
+    const res = await fetch(`http://localhost:3000/api/messages/${currentUserId}`, {
+      headers: { 'x-user-id': currentUserId }
+    });
+    const data = await res.json();
+    chatList.innerHTML = '';
+    // Vytvořím seznam unikátních uživatelů, se kterými mám konverzaci
+    const threads = {};
+    data.forEach(msg => {
+      const otherId = msg.sender_id == currentUserId ? msg.recipient_id : msg.sender_id;
+      if (!threads[otherId] || new Date(msg.created_at) > new Date(threads[otherId].created_at)) {
+        threads[otherId] = msg;
+      }
+    });
+    Object.values(threads).forEach(msg => {
+      const otherId = msg.sender_id == currentUserId ? msg.recipient_id : msg.sender_id;
+      const otherName = msg.sender_id == currentUserId ? msg.recipient_username : msg.sender_username;
+      const threadDiv = document.createElement('div');
+      threadDiv.className = 'chat-thread-list-item';
+      threadDiv.innerHTML = `<span class="chat-user">${otherName}</span><span class="chat-last-message">${msg.content}</span>`;
+      threadDiv.addEventListener('click', () => {
+        setActiveChatThread(otherId, otherName);
+      });
+      threadDiv.dataset.userid = otherId;
+      chatList.appendChild(threadDiv);
+    });
+    if (Object.keys(threads).length === 0) {
+      chatList.innerHTML = '<div>Žádné konverzace.</div>';
+    }
+  } catch (e) {
+    chatList.innerHTML = '<div>Chyba při načítání chatů.</div>';
+  }
+}
+
+// Otevře konkrétní chat vlákno
+async function openChatThread(otherUserId, otherUsername) {
+  const chatThread = document.getElementById('chat-thread');
+  const chatThreadHeader = document.getElementById('chat-thread-header');
+  const chatInput = document.getElementById('chat-input');
+  const chatSendBtn = document.getElementById('chat-send-btn');
+  const chatSendContactBtn = document.getElementById('chat-send-contact-btn');
+  chatThreadHeader.textContent = 'Chat s ' + otherUsername;
+  chatThread.innerHTML = '<div>Načítám...</div>';
+  chatInput.value = '';
+  chatSendBtn.disabled = false;
+  // Načti zprávy
+  try {
+    const res = await fetch(`http://localhost:3000/api/messages/thread/${currentUserId}/${otherUserId}`, {
+      headers: { 'x-user-id': currentUserId }
+    });
+    const data = await res.json();
+    chatThread.innerHTML = '';
+    data.forEach(msg => {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message' + (msg.sender_id == currentUserId ? ' chat-message-mine' : '');
+      msgDiv.innerHTML = `
+        <div class="chat-message-card">
+          <span class="chat-message-user">${msg.sender_username}:</span>
+          <span class="chat-message-content">${(msg.content || '').replace(/\n/g, '<br>')}</span>
+        </div>
+      `;
+      chatThread.appendChild(msgDiv);
+    });
+    chatThread.scrollTop = chatThread.scrollHeight;
+  } catch (e) {
+    chatThread.innerHTML = '<div>Chyba při načítání zpráv.</div>';
+  }
+  // Odeslání zprávy přes socket.io
+  chatSendBtn.onclick = async () => {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatSendBtn.disabled = true;
+    if (socket) {
+      socket.emit('chatMessage', {
+        senderId: currentUserId,
+        recipientId: otherUserId,
+        content: text,
+        senderUsername: currentUsername
+      });
+      chatInput.value = '';
+      chatSendBtn.disabled = false;
+    }
+  };
+  // Odeslání kontaktu
+  if (chatSendContactBtn) {
+    chatSendContactBtn.onclick = async () => {
+      chatSendContactBtn.disabled = true;
+      try {
+        // Načti kontakt přihlášeného uživatele
+        const res = await fetch(`http://localhost:3000/api/user/${currentUserId}`);
+        const data = await res.json();
+        // Hezčí formát kontaktní zprávy s emoji a novými řádky
+        const contactMsg =
+          `📇 Moje kontaktní údaje:\n` +
+          `✉️ E-mail: ${data.email || 'neuvedeno'}\n` +
+          `📞 Telefon: ${data.telephone || 'neuvedeno'}`;
+        const sendRes = await fetch('http://localhost:3000/api/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-user-id': currentUserId
+          },
+          body: JSON.stringify({ recipientId: otherUserId, content: contactMsg })
+        });
+        if (sendRes.ok) {
+          openChatThread(otherUserId, otherUsername);
+        } else {
+          showNotification('Chyba při odesílání kontaktu.', 'error');
+        }
+      } finally {
+        chatSendContactBtn.disabled = false;
+      }
+    };
+  }
+}
+
+// Realtime příjem zpráv
+if (typeof io !== 'undefined') {
+  socket.on('chatMessage', (msg) => {
+    // Pokud je zpráva do aktuálního vlákna, přidej ji do chatu
+    const chatThread = document.getElementById('chat-thread');
+    if (!chatThread) return;
+    if (
+      (msg.senderId == currentUserId && msg.recipientId == activeChatUserId) ||
+      (msg.senderId == activeChatUserId && msg.recipientId == currentUserId)
+    ) {
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'chat-message' + (msg.senderId == currentUserId ? ' chat-message-mine' : '');
+      msgDiv.innerHTML = `
+        <div class="chat-message-card">
+          <span class="chat-message-user">${msg.sender_username || ''}:</span>
+          <span class="chat-message-content">${(msg.content || '').replace(/\n/g, '<br>')}</span>
+        </div>
+      `;
+      chatThread.appendChild(msgDiv);
+      chatThread.scrollTop = chatThread.scrollHeight;
+    }
   });
 }
 

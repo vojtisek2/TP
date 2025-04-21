@@ -22,6 +22,9 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav ms-auto">
           <li class="nav-item">
+            <a class="nav-link" href="#" id="nav-chat">Chat</a>
+          </li>
+          <li class="nav-item">
             <a class="nav-link" href="#" id="nav-account">Můj účet</a>
           </li>
         </ul>
@@ -91,6 +94,14 @@
             <label for="register-password" class="form-label required">Heslo</label>
             <input type="password" class="form-control" id="register-password" required />
           </div>
+          <div class="mb-3">
+            <label for="register-telephone" class="form-label">Telefon</label>
+            <input type="text" class="form-control" id="register-telephone" />
+          </div>
+          <div class="mb-3">
+            <label for="register-email" class="form-label">E-mail</label>
+            <input type="email" class="form-control" id="register-email" />
+          </div>
           <button type="submit" class="btn btn-primary">Zaregistrovat</button>
         </form>
       </div>
@@ -104,6 +115,24 @@
       <hr />
       <h4>Moje nabídky</h4>
       <div class="row" id="my-offers-container"></div>
+    </div>
+  </div>
+
+  <!-- Sekce chatů - moderní přehledný layout -->
+  <div class="container-fluid mt-4 hidden" id="chat-section">
+    <div class="chat-main-row">
+      <aside class="chat-sidebar">
+        <div id="chat-list" class="chat-list"></div>
+      </aside>
+      <section class="chat-content">
+        <div class="chat-header" id="chat-thread-header">Vyberte konverzaci</div>
+        <div class="chat-thread" id="chat-thread"></div>
+        <div class="chat-input-row">
+          <button id="chat-send-contact-btn" class="btn btn-outline-secondary btn-sm">Zaslat mé informace</button>
+          <input id="chat-input" class="form-control" type="text" placeholder="Napište zprávu..." />
+          <button id="chat-send-btn" class="btn btn-dark">Odeslat</button>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -165,6 +194,47 @@
     </div>
   </div>
 
+  <!-- Modální okno pro detail nabídky -->
+  <div class="modal fade" id="offerDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content offer-detail-modern">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title w-100 text-center" id="offer-detail-title">Název nabídky</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+        </div>
+        <div class="modal-body py-4">
+          <div class="row g-4 align-items-center flex-md-nowrap flex-wrap">
+            <div class="col-md-6 col-12 d-flex justify-content-center align-items-center">
+              <img id="offer-detail-image" src="" alt="" style="width:100%;max-width:340px;max-height:340px;border-radius:16px;object-fit:cover;display:none;background:#e4e4e4;" class="shadow-sm" />
+            </div>
+            <div class="col-md-6 col-12" id="offer-detail-text">
+              <div id="offer-detail-info" class="mb-3"></div>
+              <div id="offer-detail-description" class="mb-2"></div>
+              <div id="offer-detail-author" class="text-muted" style="font-size:0.95rem;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modální okno pro kontakt -->
+  <div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Kontakt na prodejce</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Zavřít"></button>
+        </div>
+        <div class="modal-body">
+          <div><strong>Uživatel:</strong> <span id="contact-username"></span></div>
+          <div><strong>Telefon:</strong> <span id="contact-telephone"></span></div>
+          <div><strong>E-mail:</strong> <span id="contact-email"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer>
     <p>&copy; 2023 Thriftend. Všechna práva vyhrazena.</p>
   </footer>
@@ -172,6 +242,8 @@
 
   <!-- Skripty -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Socket.io klient pro realtime chat -->
+  <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

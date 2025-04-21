@@ -15,10 +15,49 @@ const mysql = require('mysql2/promise');
 const bcrypt = require('bcrypt');
 const multer = require('multer');
 const path = require('path');
+const http = require('http');
+const { Server } = require('socket.io');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+const server = http.createServer(app);
+const io = new Server(server, { cors: { origin: '*' } });
+
+// Mapování uživatelů na jejich socket.id
+const userSockets = {};
+
+io.on('connection', (socket) => {
+  socket.on('login', ({ userId }) => {
+    userSockets[userId] = socket.id;
+  });
+
+  socket.on('chatMessage', async ({ senderId, recipientId, content, senderUsername }) => {
+    // Uložení do DB
+    await connection.query(
+      'INSERT INTO messages (sender_id, recipient_id, content, created_at) VALUES (?, ?, ?, NOW())',
+      [senderId, recipientId, content]
+    );
+    // Odeslání zprávy příjemci (pokud je online)
+    if (userSockets[recipientId]) {
+      io.to(userSockets[recipientId]).emit('chatMessage', {
+        senderId, recipientId, content, created_at: new Date(), sender_username: senderUsername
+      });
+    }
+    // Odeslání zpět odesílateli (pro zobrazení vlastní zprávy)
+    socket.emit('chatMessage', {
+      senderId, recipientId, content, created_at: new Date(), sender_username: senderUsername
+    });
+  });
+
+  socket.on('disconnect', () => {
+    for (const [uid, sid] of Object.entries(userSockets)) {
+      if (sid === socket.id) delete userSockets[uid];
+    }
+  });
+});
 
 // 1) Nastavení úložiště pro nahrané soubory (Multer)
 const storage = multer.diskStorage({
@@ -65,7 +104,7 @@ function authenticateUser(req, res, next) {
   if (!userId) {
     return res.status(401).json({ message: 'Nejste přihlášeni.' });
   }
-  req.userId = userId;
+  req.userId = parseInt(userId, 10); // zajistí číslo
   next();
 }
 
@@ -74,7 +113,7 @@ function authenticateUser(req, res, next) {
 // -------------------------------------------------------
 app.post('/api/register', async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, telephone, email } = req.body;
 
     // Ověříme, zda uživatel již neexistuje
     const [rows] = await connection.query(
@@ -90,8 +129,8 @@ app.post('/api/register', async (req, res) => {
 
     // Vložíme nového uživatele do DB
     const [result] = await connection.query(
-      'INSERT INTO users (username, password) VALUES (?, ?)',
-      [username, hashedPassword]
+      'INSERT INTO users (username, password, telephone, email) VALUES (?, ?, ?, ?)',
+      [username, hashedPassword, telephone || '', email || '']
     );
     const newUserId = result.insertId;
 
@@ -148,7 +187,7 @@ app.post('/api/login', async (req, res) => {
 app.get('/api/offers', async (req, res) => {
   try {
     const [rows] = await connection.query(`
-      SELECT o.*, u.username 
+      SELECT o.*, o.user_id, u.username, u.telephone, u.email
       FROM offers o
       JOIN users u ON o.user_id = u.id
       ORDER BY o.created_at DESC
@@ -167,7 +206,7 @@ app.get('/api/my-offers', authenticateUser, async (req, res) => {
   try {
     const userId = req.userId;
     const [rows] = await connection.query(`
-      SELECT o.*, u.username
+      SELECT o.*, o.user_id, u.username
       FROM offers o
       JOIN users u ON o.user_id = u.id
       WHERE o.user_id = ?
@@ -305,6 +344,89 @@ app.delete('/api/offers/:id', authenticateUser, async (req, res) => {
 });
 
 // -------------------------------------------------------
+// ZÍSKAT KONTAKTNÍ ÚDAJE UŽIVATELE (GET /api/user/:id)
+// -------------------------------------------------------
+app.get('/api/user/:id', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const [rows] = await connection.query('SELECT username, telephone, email FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Uživatel nenalezen.' });
+    }
+    return res.json(rows[0]);
+  } catch (error) {
+    console.error('Chyba při získávání kontaktu:', error);
+    return res.status(500).json({ message: 'Chyba serveru.' });
+  }
+});
+
+// -------------------------------------------------------
+// CHAT ENDPOINTS
+// -------------------------------------------------------
+// Vytvoření nové zprávy
+app.post('/api/messages', authenticateUser, async (req, res) => {
+  try {
+    const { recipientId, content } = req.body;
+    const senderId = req.userId;
+    if (!recipientId || !content) {
+      return res.status(400).json({ message: 'Chybí příjemce nebo obsah.' });
+    }
+    await connection.query(
+      'INSERT INTO messages (sender_id, recipient_id, content, created_at) VALUES (?, ?, ?, NOW())',
+      [senderId, parseInt(recipientId, 10), content]
+    );
+    return res.status(201).json({ message: 'Zpráva odeslána.' });
+  } catch (error) {
+    console.error('Chyba při odesílání zprávy:', error, req.body);
+    return res.status(500).json({ message: 'Chyba serveru.', error: error.message, body: req.body });
+  }
+});
+
+// Získání všech konverzací pro uživatele
+app.get('/api/messages/:userId', authenticateUser, async (req, res) => {
+  try {
+    const userId = req.userId;
+    // Vrátí poslední zprávu z každého vlákna, kde je uživatel účastníkem
+    const [rows] = await connection.query(`
+      SELECT m.*, u1.username AS sender_username, u2.username AS recipient_username
+      FROM messages m
+      JOIN users u1 ON m.sender_id = u1.id
+      JOIN users u2 ON m.recipient_id = u2.id
+      WHERE m.sender_id = ? OR m.recipient_id = ?
+      ORDER BY m.created_at DESC
+    `, [userId, userId]);
+    return res.json(rows);
+  } catch (error) {
+    console.error('Chyba při načítání konverzací:', error);
+    return res.status(500).json({ message: 'Chyba serveru.' });
+  }
+});
+
+// Získání zpráv mezi dvěma uživateli (vlákno)
+app.get('/api/messages/thread/:userId1/:userId2', authenticateUser, async (req, res) => {
+  try {
+    const { userId1, userId2 } = req.params;
+    // Ověření, že aktuální uživatel je jedním z účastníků
+    if (req.userId != userId1 && req.userId != userId2) {
+      return res.status(403).json({ message: 'Přístup odepřen.' });
+    }
+    const [rows] = await connection.query(
+      `SELECT m.*, u1.username AS sender_username, u2.username AS recipient_username
+       FROM messages m
+       JOIN users u1 ON m.sender_id = u1.id
+       JOIN users u2 ON m.recipient_id = u2.id
+       WHERE (m.sender_id = ? AND m.recipient_id = ?) OR (m.sender_id = ? AND m.recipient_id = ?)
+       ORDER BY m.created_at ASC`,
+      [userId1, userId2, userId2, userId1]
+    );
+    return res.json(rows);
+  } catch (error) {
+    console.error('Chyba při načítání vlákna:', error);
+    return res.status(500).json({ message: 'Chyba serveru.' });
+  }
+});
+
+// -------------------------------------------------------
 // Servírovat index.html na kořenové adrese
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/index.html');
@@ -312,6 +434,6 @@ app.get('/', (req, res) => {
 
 // Spuštění serveru
 const PORT = 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server běží na http://localhost:${PORT}`);
 });
